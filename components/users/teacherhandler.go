@@ -7,19 +7,17 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/school-sys-rest-api/services/db"
 	"github.com/school-sys-rest-api/services/httpop"
+	"github.com/school-sys-rest-api/utils"
 )
 
 func GetTeachersHandler(w http.ResponseWriter, r *http.Request) {
-	var teacher []Teachers
+	var teacher []utils.Teachers
 
 	response := &httpop.Response{}
 
-	res := db.DB.Find(&teacher)
+	loggedUser := r.Context().Value("user").(utils.Users)
 
-	if res.Error != nil || res.RowsAffected < 1 {
-		w.WriteHeader(http.StatusBadRequest)
-		response.GenerateErrorResponse(nil, res.Error.Error())
-	} else {
+	if authorizationTeacher(loggedUser, &teacher, response, w, "") {
 		response.GenerateOkResponse(&teacher, "Ok request")
 	}
 
@@ -27,15 +25,14 @@ func GetTeachersHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetTeacherHandler(w http.ResponseWriter, r *http.Request) {
-	var teacher Teachers
+	var teacher utils.Teachers
 	params := mux.Vars(r)
 
 	response := &httpop.Response{}
 
-	if response.ValidateError(db.DB.First(&teacher, params["id"]), w, "user not found") {
-		db.DB.Model(&teacher).Association("User").Find(&teacher.User)
-		db.DB.Model(&teacher.User).Association("AdministrativeRole").Find(&teacher.User.AdministrativeRole)
-		db.DB.Model(&teacher.User.AdministrativeRole).Association("PermissionGroup").Find(&teacher.User.AdministrativeRole.PermissionGroup)
+	loggedUser := r.Context().Value("user").(utils.Users)
+
+	if authorizationTeacher(loggedUser, &teacher, response, w, params["id"]) {
 		response.GenerateOkResponse(&teacher, "Ok request")
 	}
 
@@ -43,7 +40,14 @@ func GetTeacherHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func PostTeacherHandler(w http.ResponseWriter, r *http.Request) {
-	var teacher Teachers
+	response := &httpop.Response{}
+	loggedUser := r.Context().Value("user").(utils.Users)
+
+	if !PostPutAuth(loggedUser, VerifyCreateUsersPermission, response, w) {
+		return
+	}
+
+	var teacher utils.Teachers
 
 	json.NewDecoder(r.Body).Decode(&teacher)
 
@@ -59,10 +63,15 @@ func PostTeacherHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func UpdateTeacherHandler(w http.ResponseWriter, r *http.Request) {
-	var teacher, newTeacher Teachers
-	params := mux.Vars(r)
-
 	response := &httpop.Response{}
+	loggedUser := r.Context().Value("user").(utils.Users)
+
+	if !PostPutAuth(loggedUser, VerifyEditUserPermission, response, w) {
+		return
+	}
+
+	var teacher, newTeacher utils.Teachers
+	params := mux.Vars(r)
 
 	json.NewDecoder(r.Body).Decode(&newTeacher)
 
@@ -76,7 +85,12 @@ func UpdateTeacherHandler(w http.ResponseWriter, r *http.Request) {
 
 func PostUserTeacherHandler(w http.ResponseWriter, r *http.Request) {
 
-	var teacher Teachers
+	/*
+		if !PostPutAuth(loggedUser, VerifyCreateUsersPermission, response, w) {
+			return
+		}*/
+
+	var teacher utils.Teachers
 	user, err := createUser(r)
 
 	if err != nil {

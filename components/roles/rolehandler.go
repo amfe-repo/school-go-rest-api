@@ -7,18 +7,19 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/school-sys-rest-api/services/db"
 	"github.com/school-sys-rest-api/services/httpop"
+	"github.com/school-sys-rest-api/utils"
 )
 
 func GetRolesHandler(w http.ResponseWriter, r *http.Request) {
-	var role []AdministrativeRoles
+	var role []utils.AdministrativeRoles
 
-	response := &httpop.Response{}
+	var response *httpop.Response = new(httpop.Response)
 
 	res := db.DB.Find(&role)
 
 	if res.Error != nil || res.RowsAffected < 1 {
 		w.WriteHeader(http.StatusBadRequest)
-		response.GenerateErrorResponse(nil, res.Error.Error())
+		response.GenerateErrorResponse(nil, "permissions not found")
 	} else {
 		response.GenerateOkResponse(&role, "Ok request")
 	}
@@ -27,13 +28,12 @@ func GetRolesHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetRoleHandler(w http.ResponseWriter, r *http.Request) {
-	var role AdministrativeRoles
+	var role utils.AdministrativeRoles
 	params := mux.Vars(r)
 
 	response := &httpop.Response{}
 
-	if response.ValidateError(db.DB.First(&role, params["id"]), w, "user not found") {
-		db.DB.Model(&role).Association("PermissionGroup").Find(&role.PermissionGroup)
+	if response.ValidateError(db.DB.First(&role, params["id"]), w, "role not found") {
 		response.GenerateOkResponse(&role, "Ok request")
 	}
 
@@ -41,7 +41,14 @@ func GetRoleHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func PostRoleHandler(w http.ResponseWriter, r *http.Request) {
-	var role AdministrativeRoles
+	response := &httpop.Response{}
+	loggedUser := r.Context().Value("user").(utils.Users)
+
+	if !PostPutAuth(loggedUser, VerifyCreateRolePermission, response, w) {
+		return
+	}
+
+	var role utils.AdministrativeRoles
 
 	json.NewDecoder(r.Body).Decode(&role)
 
@@ -57,10 +64,16 @@ func PostRoleHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func UpdateRoleHandler(w http.ResponseWriter, r *http.Request) {
-	var role, newRole AdministrativeRoles
-	params := mux.Vars(r)
 
 	response := &httpop.Response{}
+	loggedUser := r.Context().Value("user").(utils.Users)
+
+	if !PostPutAuth(loggedUser, VerifyCreateRolePermission, response, w) {
+		return
+	}
+
+	var role, newRole utils.AdministrativeRoles
+	params := mux.Vars(r)
 
 	json.NewDecoder(r.Body).Decode(&newRole)
 

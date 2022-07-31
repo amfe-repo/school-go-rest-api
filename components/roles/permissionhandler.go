@@ -7,10 +7,11 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/school-sys-rest-api/services/db"
 	"github.com/school-sys-rest-api/services/httpop"
+	"github.com/school-sys-rest-api/utils"
 )
 
 func GetPermissionsHandler(w http.ResponseWriter, r *http.Request) {
-	var pg []PermissionGroups
+	var pg []utils.PermissionGroups
 
 	response := &httpop.Response{}
 
@@ -18,7 +19,7 @@ func GetPermissionsHandler(w http.ResponseWriter, r *http.Request) {
 
 	if res.Error != nil || res.RowsAffected < 1 {
 		w.WriteHeader(http.StatusBadRequest)
-		response.GenerateErrorResponse(nil, res.Error.Error())
+		response.GenerateErrorResponse(nil, "permissions not found")
 	} else {
 		response.GenerateOkResponse(&pg, "Ok request")
 	}
@@ -27,12 +28,12 @@ func GetPermissionsHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetPermissionHandler(w http.ResponseWriter, r *http.Request) {
-	var pg PermissionGroups
+	var pg utils.PermissionGroups
 	params := mux.Vars(r)
 
 	response := &httpop.Response{}
 
-	if response.ValidateError(db.DB.First(&pg, params["id"]), w, "user not found") {
+	if response.ValidateError(db.DB.First(&pg, params["id"]), w, "permission not found") {
 		response.GenerateOkResponse(&pg, "Ok request")
 	}
 
@@ -40,7 +41,7 @@ func GetPermissionHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func PostPermissionHandler(w http.ResponseWriter, r *http.Request) {
-	var pg PermissionGroups
+	var pg utils.PermissionGroups
 
 	json.NewDecoder(r.Body).Decode(&pg)
 
@@ -56,7 +57,7 @@ func PostPermissionHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func UpdatePermissionHandler(w http.ResponseWriter, r *http.Request) {
-	var pg, newpg PermissionGroups
+	var pg, newpg utils.PermissionGroups
 	params := mux.Vars(r)
 
 	response := &httpop.Response{}

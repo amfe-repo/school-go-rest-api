@@ -7,19 +7,17 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/school-sys-rest-api/services/db"
 	"github.com/school-sys-rest-api/services/httpop"
+	"github.com/school-sys-rest-api/utils"
 )
 
 func GetStudentsHandler(w http.ResponseWriter, r *http.Request) {
-	var students []Students
+	var students []utils.Students
 
 	response := &httpop.Response{}
 
-	res := db.DB.Find(&students)
+	loggedUser := r.Context().Value("user").(utils.Users)
 
-	if res.Error != nil || res.RowsAffected < 1 {
-		w.WriteHeader(http.StatusBadRequest)
-		response.GenerateErrorResponse(nil, res.Error.Error())
-	} else {
+	if authorizationStudents(loggedUser, &students, response, w, "") {
 		response.GenerateOkResponse(&students, "Ok request")
 	}
 
@@ -27,15 +25,14 @@ func GetStudentsHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetStudentHandler(w http.ResponseWriter, r *http.Request) {
-	var student Students
+	var student utils.Students
 	params := mux.Vars(r)
 
 	response := &httpop.Response{}
 
-	if response.ValidateError(db.DB.First(&student, params["id"]), w, "user not found") {
-		db.DB.Model(&student).Association("User").Find(&student.User)
-		db.DB.Model(&student.User).Association("AdministrativeRole").Find(&student.User.AdministrativeRole)
-		db.DB.Model(&student.User.AdministrativeRole).Association("PermissionGroup").Find(&student.User.AdministrativeRole.PermissionGroup)
+	loggedUser := r.Context().Value("user").(utils.Users)
+
+	if authorizationStudents(loggedUser, &student, response, w, params["id"]) {
 		response.GenerateOkResponse(&student, "Ok request")
 	}
 
@@ -43,26 +40,37 @@ func GetStudentHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func PostStudentHandler(w http.ResponseWriter, r *http.Request) {
-	var student Students
+	response := &httpop.Response{}
+	loggedUser := r.Context().Value("user").(utils.Users)
 
+	if !PostPutAuth(loggedUser, VerifyCreateUsersPermission, response, w) {
+		return
+	}
+
+	var student utils.Students
 	json.NewDecoder(r.Body).Decode(&student)
 
 	res := db.DB.Create(&student)
 
 	if res.Error != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(res.Error.Error()))
-		return
+		response.GenerateErrorResponse(nil, "student not inserted")
 	}
 
-	json.NewEncoder(w).Encode(&student)
+	response.SendResponse(w)
 }
 
 func UpdateStudentHandler(w http.ResponseWriter, r *http.Request) {
-	var student, newStudent Students
+	var student, newStudent utils.Students
 	params := mux.Vars(r)
 
 	response := &httpop.Response{}
+
+	loggedUser := r.Context().Value("user").(utils.Users)
+
+	if !PostPutAuth(loggedUser, VerifyEditUserPermission, response, w) {
+		return
+	}
 
 	json.NewDecoder(r.Body).Decode(&newStudent)
 
@@ -74,9 +82,11 @@ func UpdateStudentHandler(w http.ResponseWriter, r *http.Request) {
 	response.SendResponse(w)
 }
 
-func createUser(r *http.Request) (Users, error) {
-	var user Users
+func createUser(r *http.Request) (utils.Users, error) {
+	var user utils.Users
 	json.NewDecoder(r.Body).Decode(&user)
+
+	user.IdRole = 1
 
 	res := db.DB.Create(&user)
 
@@ -89,7 +99,11 @@ func createUser(r *http.Request) (Users, error) {
 
 func PostUserStudentHandler(w http.ResponseWriter, r *http.Request) {
 
-	var student Students
+	/*if !PostPutAuth(loggedUser, VerifyCreateUsersPermission, response, w) {
+		return
+	}*/
+
+	var student utils.Students
 	user, err := createUser(r)
 
 	if err != nil {

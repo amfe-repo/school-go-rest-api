@@ -7,70 +7,79 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/school-sys-rest-api/services/db"
 	"github.com/school-sys-rest-api/services/httpop"
+	"github.com/school-sys-rest-api/utils"
 )
 
-func buildUser(user *Users) {
+func BuildUser(user *utils.Users) {
 	db.DB.Model(&user).Association("AdministrativeRole").Find(&user.AdministrativeRole)
 	db.DB.Model(&user.AdministrativeRole).Association("PermissionGroup").Find(&user.AdministrativeRole.PermissionGroup)
 }
 
 func GetUsersHandler(w http.ResponseWriter, r *http.Request) {
-	var users []Users
+	var users []utils.Users
 
-	var resp *httpop.Response = new(httpop.Response)
+	var response *httpop.Response = new(httpop.Response)
 
-	if resp.ValidateError(db.DB.Find(&users), w, "not users") {
-		resp.GenerateOkResponse(&users, "Ok request")
-	}
+	loggedUser := r.Context().Value("user").(utils.Users)
 
-	resp.SendResponse(w)
-}
-
-func GetUserHandler(w http.ResponseWriter, r *http.Request) {
-	var user Users
-	params := mux.Vars(r)
-
-	response := &httpop.Response{}
-
-	res := db.DB.First(&user, params["id"])
-
-	if res.Error != nil || res.RowsAffected < 1 {
-		w.WriteHeader(http.StatusBadRequest)
-		response.GenerateErrorResponse(nil, "error")
-	} else {
-		buildUser(&user)
-		response.GenerateOkResponse(&user, "Ok request")
+	if authorizationUsers(loggedUser, &users, response, w, "") {
+		response.GenerateOkResponse(&users, "Ok request")
 	}
 
 	response.SendResponse(w)
 }
 
-//USER NOT STUDENT OR TEACHER
-//TEACHERS
-//STUDENTS
-// USER STUDENT
-// USER TEACHER
+func GetUserHandler(w http.ResponseWriter, r *http.Request) {
+	var user utils.Users
+	params := mux.Vars(r)
+
+	var response *httpop.Response = new(httpop.Response)
+
+	loggedUser := r.Context().Value("user").(utils.Users)
+
+	if authorizationUsers(loggedUser, &user, response, w, params["id"]) {
+		response.GenerateOkResponse(&user, "Ok request")
+	}
+
+	//fmt.Println(num)
+	response.SendResponse(w)
+}
 
 func PostUserHandler(w http.ResponseWriter, r *http.Request) {
-	var user Users
+
+	response := &httpop.Response{}
+	loggedUser := r.Context().Value("user").(utils.Users)
+
+	if !PostPutAuth(loggedUser, VerifyCreateUsersPermission, response, w) {
+		return
+	}
+
+	var user utils.Users
 	json.NewDecoder(r.Body).Decode(&user)
 
 	res := db.DB.Create(&user)
 
 	if res.Error != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(res.Error.Error()))
-		return
+		response.GenerateErrorResponse(nil, "user not inserted")
 	}
 
-	json.NewEncoder(w).Encode(&user)
+	response.SendResponse(w)
 }
 
 func UpdateUserHandler(w http.ResponseWriter, r *http.Request) {
-	var user, newUser Users
-	params := mux.Vars(r)
 
 	response := &httpop.Response{}
+	loggedUser := r.Context().Value("user").(utils.Users)
+
+	if !VerifyEditUserPermission(loggedUser) {
+		response.GenerateErrorAccessDeniedResponse(nil, "access denied")
+		response.SendResponse(w)
+		return
+	}
+
+	var user, newUser utils.Users
+	params := mux.Vars(r)
 
 	json.NewDecoder(r.Body).Decode(&newUser)
 

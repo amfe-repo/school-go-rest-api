@@ -3,29 +3,26 @@ package script
 import (
 	"fmt"
 
-	"github.com/school-sys-rest-api/components/courses"
-	"github.com/school-sys-rest-api/components/requests"
-	"github.com/school-sys-rest-api/components/roles"
-	"github.com/school-sys-rest-api/components/users"
 	"github.com/school-sys-rest-api/services/db"
+	"github.com/school-sys-rest-api/utils"
 )
 
 type Table interface{}
 
 var (
-	user    users.Users
-	teacher users.Teachers
-	student users.Students
+	user    utils.Users
+	teacher utils.Teachers
+	student utils.Students
 
-	admin roles.AdministrativeRoles
-	per   roles.PermissionGroups
+	admin utils.AdministrativeRoles
+	per   utils.PermissionGroups
 
-	course    courses.Courses
-	enrr      courses.EnrollCourses
-	stcourse  courses.StudentEnrollCourses
-	tchcourse courses.TeacherEnrollCourses
+	course    utils.Courses
+	enrr      utils.EnrollCourses
+	stcourse  utils.StudentEnrollCourses
+	tchcourse utils.TeacherEnrollCourses
 
-	reqst requests.StudentCourseRequests
+	reqst utils.StudentCourseRequests
 )
 
 func migrateTables(tables []Table) {

@@ -23,8 +23,20 @@ func (this *Response) GenerateErrorResponse(data interface{}, msg string) {
 	this.Message = msg
 }
 
+func (this *Response) GenerateErrorAuthResponse(data interface{}, msg string) {
+	this.Status = "auth"
+	this.Data = data
+	this.Message = msg
+}
+
+func (this *Response) GenerateErrorAccessDeniedResponse(data interface{}, msg string) {
+	this.Status = "ac"
+	this.Data = data
+	this.Message = msg
+}
+
 func (this *Response) GenerateOkResponse(data interface{}, msg string) {
-	this.Status = "Ok"
+	this.Status = "ok"
 	this.Data = data
 	this.Message = msg
 }
