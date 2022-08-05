@@ -30,6 +30,7 @@ func AllRoutes() *mux.Router {
 	usersession.LoginRouter()
 
 	routeservice.Routes.Use(auth.AuthenticationMiddleware)
+	routeservice.Routes.Use(mux.CORSMethodMiddleware(routeservice.Routes))
 
 	return routeservice.Routes
 }

@@ -15,7 +15,15 @@ func AuthenticationMiddleware(next http.Handler) http.Handler {
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
-		if r.RequestURI == "/login/" || r.RequestURI == "/students/create-user" || r.RequestURI == "/teachers/create-user" {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+
+		w.Header().Set("Access-Control-Allow-Headers", "Session-user-data")
+
+		if r.Method == http.MethodOptions {
+			return
+		}
+
+		if r.RequestURI == "/courses/" || r.RequestURI == "/students/create-user" || r.RequestURI == "/teachers/create-user" || r.RequestURI == "/login/" {
 			next.ServeHTTP(w, r)
 			return
 		}
@@ -30,7 +38,7 @@ func AuthenticationMiddleware(next http.Handler) http.Handler {
 
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
-			w.Write([]byte("error data"))
+			w.Write([]byte("error data or not user passed"))
 			return
 		}
 

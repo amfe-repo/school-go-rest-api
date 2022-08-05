@@ -12,5 +12,5 @@ func main() {
 
 	db.ConnectDB()
 	//script.CompleteMigrateTables()
-	log.Fatal(http.ListenAndServe("localhost:4000", routes.AllRoutes()))
+	log.Fatal(http.ListenAndServe("192.168.10.40:4000", routes.AllRoutes()))
 }

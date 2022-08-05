@@ -87,6 +87,7 @@ func createUser(r *http.Request) (utils.Users, error) {
 	json.NewDecoder(r.Body).Decode(&user)
 
 	user.IdRole = 1
+	user.Status = "1"
 
 	res := db.DB.Create(&user)
 
@@ -102,7 +103,7 @@ func PostUserStudentHandler(w http.ResponseWriter, r *http.Request) {
 	/*if !PostPutAuth(loggedUser, VerifyCreateUsersPermission, response, w) {
 		return
 	}*/
-
+	response := &httpop.Response{}
 	var student utils.Students
 	user, err := createUser(r)
 
@@ -123,8 +124,8 @@ func PostUserStudentHandler(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(res.Error.Error()))
 		return
 	}
-
-	json.NewEncoder(w).Encode(&user)
+	response.GenerateOkResponse(&user, "Ok request")
+	response.SendResponse(w)
 }
 
 func DeleteStudentsHandler(w http.ResponseWriter, r *http.Request) {
