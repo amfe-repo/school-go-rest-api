@@ -19,7 +19,7 @@ type Users struct {
 type Teachers struct {
 	gorm.Model
 	RegistrationNumber string  `gorm:"not null;type:varchar(15);unique_index" json:"registration_number"`
-	Salary             float32 `gorm:"not null;type:real" json:"name" json:"salary"`
+	Salary             float32 `gorm:"not null;type:real" json:"salary"`
 	IdUser             int     `gorm:"type:integer" json:"id_user"`
 	User               Users   `gorm:"foreignKey:IdUser" json:"user"`
 	Experience         string  `gorm:"type:text" json:"experience"`

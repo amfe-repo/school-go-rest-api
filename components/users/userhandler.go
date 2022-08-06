@@ -23,6 +23,10 @@ func GetUsersHandler(w http.ResponseWriter, r *http.Request) {
 	loggedUser := r.Context().Value("user").(utils.Users)
 
 	if authorizationUsers(loggedUser, &users, response, w, "") {
+		for counter := range users {
+			db.DB.Model(&users[counter]).Association("AdministrativeRole").Find(&users[counter].AdministrativeRole)
+			db.DB.Model(&users[counter]).Association("PermissionGroup").Find(&users[counter].AdministrativeRole.PermissionGroup)
+		}
 		response.GenerateOkResponse(&users, "Ok request")
 	}
 

@@ -21,6 +21,9 @@ func GetRolesHandler(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		response.GenerateErrorResponse(nil, "permissions not found")
 	} else {
+		for counter := range role {
+			db.DB.Model(&role[counter]).Association("PermissionGroup").Find(&role[counter].PermissionGroup)
+		}
 		response.GenerateOkResponse(&role, "Ok request")
 	}
 

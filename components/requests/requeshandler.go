@@ -24,6 +24,7 @@ func GetRequestsHandler(w http.ResponseWriter, r *http.Request) {
 		for counter := range course {
 			db.DB.Model(&course[counter]).Association("Course").Find(&course[counter].Course)
 			db.DB.Model(&course[counter]).Association("Student").Find(&course[counter].Student)
+			db.DB.Model(&course[counter].Student).Association("User").Find(&course[counter].Student.User)
 		}
 		response.GenerateOkResponse(&course, "Ok request")
 	}
